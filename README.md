@@ -3,10 +3,10 @@ Roblox Luau signal implementation
 Creative name I know.
 
 ## My crappy benchmarks against LemonSignal (take with a **hefty** spoon of salt)
-Firing is ~200% faster
-Disconnect all is about the same
-Connection is about the same
-Construction is ~50% slower due to the extra data being stored
+- Firing is ~200% faster
+- Disconnect all is about the same
+- Connection is about the same
+- Construction is ~50% slower due to the extra data being stored
 
 
 ## Notable Features
