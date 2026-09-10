@@ -2,10 +2,12 @@
 Roblox Luau signal implementation  
 Creative name I know.
 
-## My crappy benchmarks against LemonSignal (take with a **hefty** spoon of salt)
+## My crappy benchmarks against LemonSignal (take with a *hefty* spoon of salt)
 - Firing is ~200% faster
-- Disconnect all is about the same
-- Connection is about the same
+- Disconnect all is (probably) about the same
+- Connect is (probably) about the same
+- Once I haven't tested
+- Wait I haven't tested
 - Construction is ~50% slower due to the extra data being stored
 
 
@@ -18,7 +20,6 @@ Creative name I know.
 - Maybe memory leaks because connections aren't cleared properly I haven't tested it too thoroughly yet...
 
 ## Notable Not Features
-- :Wait()
-- :Once()
+- I'm not sure
 
 Thank you LemonSignal anyways because I used it as a basis for the thread recycling implementation and :Disconnect() which I was being stupid about.
