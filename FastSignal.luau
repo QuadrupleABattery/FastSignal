@@ -9,14 +9,17 @@ type Signal<T...> = {
 	_head : LinkNode,
 	_tail : LinkNode,
 	_size : number,
-	Connect : (self : Signal<T...>, Callback<T...>) -> Connection,
+	_tempConnections : {Connection},
+	Connect : (self : Signal<T...>, func : Callback<T...>) -> Connection,
+	Once : (self : Signal<T...>, func : Callback<T...>) -> Connection,
+	Wait : (self : Signal<T...>) -> T...,
 	DisconnectAll : (self : Signal<T...>) -> (),
 	Fire : (self : Signal<T...>, T...) -> (),
 }
 
 type Connection = {
 	_signal : Signal<any>,
-	_node : LinkNode,
+	_node : LinkNode?,
 	Disconnect : (self : Connection) -> (),
 }
 
@@ -40,10 +43,10 @@ local function threadFunction<T...>() : ()
 	end
 end
 
-function Connection.new(signal : Signal<any>, node : LinkNode) : Connection
+function Connection.new<T...>(signal : Signal<T...>, node : LinkNode) : Connection
 	return setmetatable({
 		_signal = signal,
-		_node = node,
+		_node = node :: LinkNode?,
 		Disconnect = Connection.Disconnect,
 	}, Connection)
 end
@@ -55,9 +58,12 @@ function Signal.new<T...>() : Signal<T...>
 		_head = node,
 		_tail = node,
 		_size = 1,
+		_tempConnections = {},
 		Connect = Signal.Connect,
 		DisconnectAll = Signal.DisconnectAll,
 		Fire = Signal.Fire,
+		Once = Signal.Once,
+		Wait = Signal.Wait,
 	}
 end
 
@@ -89,8 +95,28 @@ function Signal.Connect<T...>(self : Signal<T...>, callback : Callback<T...>) : 
 		Disconnect = Connection.Disconnect,
 	}
 	
-	node._connection = connection
-	return connection
+	node._connection = connection :: Connection?
+	return connection :: Connection
+end
+
+function Signal.Once<T...>(self : Signal<T...>, callback : Callback<T...>) : Connection
+	local tempConnection = self:Connect(callback)
+
+	table.insert(self._tempConnections, tempConnection)
+	
+	return tempConnection
+end
+
+function Signal.Wait<T...>(self : Signal<T...>) : T...
+	local callThread = coroutine.running()
+	
+	local function resumeThread(... : T...)
+		coroutine.resume(callThread, ...)
+	end
+	
+	self:Once(resumeThread)
+	
+	return coroutine.yield()
 end
 
 @native function Signal.Fire<T...>(self : Signal<T...>, ... : T...) : ()
@@ -100,7 +126,7 @@ end
 		return
 	end
 	
-	for _ = 1, self._size do
+	for i = 1, self._size do
 		local freeThread : thread? = nil
 		local length = #freeThreads
 
@@ -117,14 +143,22 @@ end
 		node = node._next
 	end
 	
+	if #self._tempConnections > 0 then
+		for _, temp in self._tempConnections do
+			temp:Disconnect()
+		end
+	end
+	
 	return
 end
 
-function Signal.DisconnectAll<T...>(self : Signal<T...>) : ()
+@native function Signal.DisconnectAll<T...>(self : Signal<T...>) : ()
 	local node = {
 		_fn = function() end,
 		_connection = {} :: Connection,
 	} :: LinkNode
+	
+	
 	
 	self._head = node
 	self._tail = node
@@ -135,25 +169,32 @@ end
 
 function Connection.Disconnect(self : Connection) : ()
 	local signal = self._signal
-	local node : LinkNode = self._node
+	local node : LinkNode? = self._node
+	
+	if node == nil then
+		return
+	end
 	
 	local nextNode = node._next
 	local prevNode = node._previous
 	
 	if nextNode ~= nil then
 		nextNode._previous = prevNode
+		node._next = nil
 	end
 	
 	if prevNode then
 		prevNode._next = nextNode
+		node._previous = nil
 	elseif signal._head == node then
 		if nextNode ~= nil then
 			signal._head = nextNode
-			table.clear(node)
-		else
-			node._connection = nil
-			node._next = nil
 		end
+	end
+	
+	if node._connection ~= nil then
+		node._connection._node = nil
+		node._connection = nil
 	end
 	
 	signal._size -= 1
