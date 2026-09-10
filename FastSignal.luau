@@ -120,7 +120,7 @@ end
 	return
 end
 
-@native function Signal.DisconnectAll<T...>(self : Signal<T...>) : ()
+function Signal.DisconnectAll<T...>(self : Signal<T...>) : ()
 	local node = {
 		_fn = function() end,
 		_connection = {} :: Connection,
