@@ -1,5 +1,5 @@
 # FastSignal
-Roblox Luau signal implementation
+Roblox Luau signal implementation  
 Creative name I know.
 
 ## My crappy benchmarks against LemonSignal (take with a **hefty** spoon of salt)
